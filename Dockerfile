@@ -1,3 +1,4 @@
+
 # Build the manager binary
 FROM golang:1.13 as builder
 
