@@ -65,7 +65,7 @@ type BaremetalHostStatus struct {
 }
 
 // GetHostnames -
-func (bmSet BaremetalSet) GetHostnames() map[string]string {
+func (bmSet OpenStackBaremetalSet) GetHostnames() map[string]string {
 	ret := make(map[string]string)
 	for key, val := range bmSet.Status.BaremetalHosts {
 		ret[key] = val.Hostname
@@ -146,8 +146,8 @@ type DiskSSDReq struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// BaremetalSet represent a set of baremetal hosts for a specific role within the Overcloud deployment
-type BaremetalSet struct {
+// OpenStackBaremetalSet represent a set of baremetal hosts for a specific role within the Overcloud deployment
+type OpenStackBaremetalSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -157,13 +157,13 @@ type BaremetalSet struct {
 
 // +kubebuilder:object:root=true
 
-// BaremetalSetList contains a list of BaremetalSet
-type BaremetalSetList struct {
+// OpenStackBaremetalSetList contains a list of BaremetalSet
+type OpenStackBaremetalSetList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []BaremetalSet `json:"items"`
+	Items           []OpenStackBaremetalSet `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&BaremetalSet{}, &BaremetalSetList{})
+	SchemeBuilder.Register(&OpenStackBaremetalSet{}, &OpenStackBaremetalSetList{})
 }

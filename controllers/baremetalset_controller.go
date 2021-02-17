@@ -94,7 +94,7 @@ func (r *BaremetalSetReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 	ctx := context.Background()
 
 	// Fetch the instance
-	instance := &ospdirectorv1beta1.BaremetalSet{}
+	instance := &ospdirectorv1beta1.OpenStackBaremetalSet{}
 	if err := r.Client.Get(ctx, req.NamespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile
@@ -266,7 +266,7 @@ func (r *BaremetalSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	})
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&ospdirectorv1beta1.BaremetalSet{}).
+		For(&ospdirectorv1beta1.OpenStackBaremetalSet{}).
 		Owns(&ospdirectorv1beta1.ProvisionServer{}).
 		Watches(&source.Kind{Type: &metal3v1alpha1.BareMetalHost{}},
 			&handler.EnqueueRequestsFromMapFunc{
@@ -275,7 +275,7 @@ func (r *BaremetalSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *BaremetalSetReconciler) provisionServerCreateOrUpdate(instance *ospdirectorv1beta1.BaremetalSet) (*ospdirectorv1beta1.ProvisionServer, controllerutil.OperationResult, error) {
+func (r *BaremetalSetReconciler) provisionServerCreateOrUpdate(instance *ospdirectorv1beta1.OpenStackBaremetalSet) (*ospdirectorv1beta1.ProvisionServer, controllerutil.OperationResult, error) {
 	provisionServer := &ospdirectorv1beta1.ProvisionServer{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      instance.ObjectMeta.Name + "-provisionserver",
@@ -301,7 +301,7 @@ func (r *BaremetalSetReconciler) provisionServerCreateOrUpdate(instance *ospdire
 }
 
 // Provision or deprovision BaremetalHost resources based on replica count
-func (r *BaremetalSetReconciler) ensureBaremetalHosts(instance *ospdirectorv1beta1.BaremetalSet, provisionServer *ospdirectorv1beta1.ProvisionServer, sshSecret *corev1.Secret, ipset *ospdirectorv1beta1.OvercloudIPSet) error {
+func (r *BaremetalSetReconciler) ensureBaremetalHosts(instance *ospdirectorv1beta1.OpenStackBaremetalSet, provisionServer *ospdirectorv1beta1.ProvisionServer, sshSecret *corev1.Secret, ipset *ospdirectorv1beta1.OvercloudIPSet) error {
 	// Get all openshift-machine-api BaremetalHosts
 	baremetalHostsList := &metal3v1alpha1.BareMetalHostList{}
 	listOpts := []client.ListOption{
@@ -444,7 +444,7 @@ func (r *BaremetalSetReconciler) ensureBaremetalHosts(instance *ospdirectorv1bet
 }
 
 // Provision a BaremetalHost via Metal3 (and create its bootstrapping secret)
-func (r *BaremetalSetReconciler) baremetalHostProvision(instance *ospdirectorv1beta1.BaremetalSet, bmh string, localImageURL string, sshSecret *corev1.Secret, ipset *ospdirectorv1beta1.OvercloudIPSet) error {
+func (r *BaremetalSetReconciler) baremetalHostProvision(instance *ospdirectorv1beta1.OpenStackBaremetalSet, bmh string, localImageURL string, sshSecret *corev1.Secret, ipset *ospdirectorv1beta1.OvercloudIPSet) error {
 	// Prepare cloudinit (create secret)
 	sts := []common.Template{}
 	secretLabels := common.GetLabels(instance.Name, baremetalset.AppLabel)
@@ -578,7 +578,7 @@ func (r *BaremetalSetReconciler) baremetalHostProvision(instance *ospdirectorv1b
 }
 
 // Deprovision a BaremetalHost via Metal3 (and delete its bootstrapping secret)
-func (r *BaremetalSetReconciler) baremetalHostDeprovision(instance *ospdirectorv1beta1.BaremetalSet, bmh string) error {
+func (r *BaremetalSetReconciler) baremetalHostDeprovision(instance *ospdirectorv1beta1.OpenStackBaremetalSet, bmh string) error {
 	baremetalHost := &metal3v1alpha1.BareMetalHost{}
 	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: bmh, Namespace: "openshift-machine-api"}, baremetalHost)
 
@@ -642,7 +642,7 @@ func (r *BaremetalSetReconciler) baremetalHostDeprovision(instance *ospdirectorv
 }
 
 // Deprovision all associated BaremetalHosts for this BaremetalSet via Metal3
-func (r *BaremetalSetReconciler) baremetalHostCleanup(instance *ospdirectorv1beta1.BaremetalSet) error {
+func (r *BaremetalSetReconciler) baremetalHostCleanup(instance *ospdirectorv1beta1.OpenStackBaremetalSet) error {
 	if instance.Status.BaremetalHosts != nil {
 		for bmhName := range instance.Status.BaremetalHosts {
 			err := r.baremetalHostDeprovision(instance, bmhName)
@@ -661,7 +661,7 @@ func (r *BaremetalSetReconciler) baremetalHostCleanup(instance *ospdirectorv1bet
    List of objects which get cleaned:
    - user-data secret, openshift-machine-api namespace
 */
-func (r *BaremetalSetReconciler) deleteOwnerRefLabeledObjects(instance *ospdirectorv1beta1.BaremetalSet) error {
+func (r *BaremetalSetReconciler) deleteOwnerRefLabeledObjects(instance *ospdirectorv1beta1.OpenStackBaremetalSet) error {
 	labelSelectorMap := map[string]string{
 		baremetalset.OwnerUIDLabelSelector:       string(instance.UID),
 		baremetalset.OwnerNameSpaceLabelSelector: instance.Namespace,
@@ -686,7 +686,7 @@ func (r *BaremetalSetReconciler) deleteOwnerRefLabeledObjects(instance *ospdirec
 	return nil
 }
 
-func (r *BaremetalSetReconciler) verifyHardwareMatch(instance *ospdirectorv1beta1.BaremetalSet, bmh *metal3v1alpha1.BareMetalHost) (bool, error) {
+func (r *BaremetalSetReconciler) verifyHardwareMatch(instance *ospdirectorv1beta1.OpenStackBaremetalSet, bmh *metal3v1alpha1.BareMetalHost) (bool, error) {
 	// If no requested hardware requirements, we're all set
 	if instance.Spec.HardwareReqs == (ospdirectorv1beta1.HardwareReqs{}) {
 		return true, nil
